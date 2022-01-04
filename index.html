@@ -82,6 +82,11 @@
         content: "\a0\a0\a0\a0pushNumber: ";
         color: black;
       }
+
+      #debug, #runtime {
+        overflow-y: scroll;
+        max-height: 100%;
+      }
     </style>
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
@@ -270,29 +275,31 @@ Goodbye!
       <div class="editor"></div>
       <div class="playground">
         <div id="runtime">
-          <div v-if="vm">
-            <pre>{{text}}</pre>
-            <div v-for="choice in choices">
-              <button @click="select(choice.id)">{{choice.title}}</button>
-            </div>
-          </div>
+          <span v-if="vm">
+            <span>        
+              <pre>{{text}}</pre>
+              <div v-for="choice in choices">
+                <button @click="select(choice.id)">{{choice.title}}</button>
+              </div>
+            </span>
+          </span>
         </div>
       </div>
       <div class="debug">
         <div id="debug">
-          <div v-if="vm">
-            <div>pc: {{vm.programCounter}}</div>
+          <span v-if="vm">
+            <span>pc: {{vm.programCounter}}</span>
             <stack :data="vm.stack"></stack>
             <context :data="vm.context"></context>
-          </div>
-          <div v-if="vm && srcProgramList">
-            <div v-for="(instr, index) in srcProgramList">
+          </span>
+          <span v-if="vm && srcProgramList">
+            <span v-for="(instr, index) in srcProgramList">
               <instruction
                 :src="instr"
                 :active="index == vm.programCounter - 1"
               ></instruction>
-            </div>
-          </div>
+            </span>
+          </span>
         </div>
       </div>
       <div class="toolbox">
