@@ -94,6 +94,13 @@
         overflow-y: scroll;
         max-height: 100%;
       }
+
+      .error {
+        text-decoration-line: underline;
+        text-decoration-style: wavy;
+        text-decoration-color: red;
+        background-color: rgba(255, 0, 0, 0.5);
+      }
     </style>
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
@@ -106,7 +113,7 @@
       src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"
     ></script>
     <script src="https://unpkg.com/vue@3.2.26"></script>
-    <script src="https://unpkg.com/questmark-yarn@0.0.6/dist/browser/parser.js"></script>
+    <script src="https://unpkg.com/questmark-yarn@0.0.7/dist/browser/parser.js"></script>
     <script src="https://unpkg.com/questmark@0.0.37/dist/browser/bundle.js"></script>
     <script type="text/html" id="instruction">
       <div class="instruction" v-bind:class="{active: active}">
@@ -241,8 +248,35 @@ Goodbye!
         });
         const runtimeAppInstance = runtimeApp.mount("#runtime");
 
+        let decorations = [];
         let compile = () => {
-          const vmState = QuestmarkYarn.parse(editorInstance.getValue());
+          editorInstance.deltaDecorations(decorations, []);
+          decorations = [];
+          const errorListener = {
+            syntaxError: (src, token, line, column, error) => {
+              let newDecorations = editorInstance.deltaDecorations(
+                [],
+                [
+                  {
+                    range: new monaco.Range(line, column, line, column),
+                    options: {
+                      isWholeLine: true,
+                      inlineClassName: "error",
+                      glyphMarginClassName: "error",
+                      glyphMarginHoverMessage: { value: error },
+                      hoverMessage: { value: error },
+                    },
+                  },
+                ]
+              );
+              decorations = decorations.concat(newDecorations);
+            },
+          };
+          const parseResult = QuestmarkYarn.parse(
+            editorInstance.getValue(),
+            errorListener
+          );
+          const vmState = parseResult.vmState;
           const vm = new Questmark.QuestVM(
             (text) => {
               runtimeAppInstance.$data.text += text;
@@ -336,7 +370,9 @@ Goodbye!
         </div>
       </div>
       <div class="toolbox">
-        <button id="compile-yarn" style="display: none;">Compile (yarn -> tzo/questvm)</button>
+        <button id="compile-yarn" style="display: none">
+          Compile (yarn -> tzo/questvm)
+        </button>
         <button id="download">Download compiled code .json</button>
       </div>
     </div>
