@@ -30,7 +30,9 @@
         grid-area: editor;
       }
 
-      .playground, .debug, .toolbox {
+      .playground,
+      .debug,
+      .toolbox {
         background: #2c2c2c;
         color: white;
       }
@@ -87,7 +89,8 @@
         color: grey;
       }
 
-      #debug, #runtime {
+      #debug,
+      #runtime {
         overflow-y: scroll;
         max-height: 100%;
       }
@@ -188,6 +191,7 @@ Goodbye!
             return {
               vm: null,
               srcProgramList: null,
+              srcVMState: null,
             };
           },
         });
@@ -256,6 +260,7 @@ Goodbye!
           vm.loadVMState(vmState);
           debugAppInstance.$data.vm = Vue.readonly(Vue.reactive(vm));
           debugAppInstance.$data.srcProgramList = vmState.programList;
+          debugAppInstance.$data.srcVMState = vmState;
           runtimeAppInstance.$data.vm = Vue.readonly(Vue.reactive(vm));
           runtimeAppInstance.$data.choices = null;
           runtimeAppInstance.$data.text = "";
@@ -269,6 +274,26 @@ Goodbye!
           .addEventListener("click", () => {
             compile();
           });
+
+        let download = () => {
+          const blob = new Blob(
+            [JSON.stringify(debugAppInstance.$data.srcVMState, null, 2)],
+            { type: "application/json" }
+          );
+          const blobURL =
+            window.URL && window.URL.createObjectURL
+              ? window.URL.createObjectURL(blob)
+              : window.webkitURL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.style.display = "none";
+          link.href = blobURL;
+          link.setAttribute("download", "questmark-yarn-story.json");
+          link.click();
+        };
+
+        document.querySelector("#download").addEventListener("click", () => {
+          download();
+        });
 
         editorInstance.onDidChangeModelContent(() => {
           debouncedCompile();
@@ -284,7 +309,7 @@ Goodbye!
       <div class="playground">
         <div id="runtime">
           <span v-if="vm">
-            <span>        
+            <span>
               <pre>{{text}}</pre>
               <div v-for="choice in choices">
                 <button @click="select(choice.id)">{{choice.title}}</button>
@@ -312,6 +337,7 @@ Goodbye!
       </div>
       <div class="toolbox">
         <button id="compile-yarn">Compile (yarn -> tzo/questvm)</button>
+        <button id="download">Download compiled code .json</button>
       </div>
     </div>
   </body>
