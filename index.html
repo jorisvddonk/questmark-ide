@@ -9,6 +9,7 @@
       html,
       body {
         margin: 0px;
+        background-color: #888;
       }
 
       .container {
@@ -22,25 +23,28 @@
           "editor editor playground"
           "editor editor debug"
           "toolbox toolbox debug";
+        grid-gap: 2px;
       }
 
       .editor {
         grid-area: editor;
       }
 
+      .playground, .debug, .toolbox {
+        background: #2c2c2c;
+        color: white;
+      }
+
       .playground {
         grid-area: playground;
-        background: #cfc;
       }
 
       .debug {
         grid-area: debug;
-        background: #ccf;
       }
 
       .toolbox {
         grid-area: toolbox;
-        background: #fcc;
       }
 
       .instruction.active {
@@ -55,32 +59,32 @@
       }
 
       .function-name {
-        color: blue;
+        color: cyan;
       }
       .function-name::before {
         content: "invokeFunction: ";
-        color: black;
+        color: grey;
       }
 
       .label {
-        color: green;
+        color: lightgreen;
         float: right;
       }
 
       .string {
-        color: purple;
+        color: pink;
       }
       .string::before {
         content: "\a0\a0\a0\a0pushString: ";
-        color: black;
+        color: grey;
       }
 
       .number {
-        color: red;
+        color: salmon;
       }
       .number::before {
         content: "\a0\a0\a0\a0pushNumber: ";
-        color: black;
+        color: grey;
       }
 
       #debug, #runtime {
