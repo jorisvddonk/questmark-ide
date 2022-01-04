@@ -276,6 +276,16 @@ Goodbye!
             editorInstance.getValue(),
             errorListener
           );
+          try {
+            console.log(
+              parseResult.tokens
+                .map(
+                  (token) =>
+                    token.tokenSource.vocabulary.symbolicNames[token.type]
+                )
+                .join("\n")
+            );
+          } catch (e) {}
           const vmState = parseResult.vmState;
           const vm = new Questmark.QuestVM(
             (text) => {
