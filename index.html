@@ -242,20 +242,24 @@ Goodbye!
           const vm = new Questmark.QuestVM(
             (text) => {
               runtimeAppInstance.$data.text += text;
+              debugAppInstance.$forceUpdate();
             },
             (choices) => {
               return new Promise((resolve, reject) => {
                 runtimeAppInstance.$data.promiseResolve = resolve;
                 runtimeAppInstance.$data.choices = choices;
+                debugAppInstance.$forceUpdate();
               });
             },
             {}
           );
           vm.loadVMState(vmState);
-          vm.run();
-          debugAppInstance.$data.vm = vm;
+          debugAppInstance.$data.vm = Vue.readonly(Vue.reactive(vm));
           debugAppInstance.$data.srcProgramList = vmState.programList;
-          runtimeAppInstance.$data.vm = vm;
+          runtimeAppInstance.$data.vm = Vue.readonly(Vue.reactive(vm));
+          runtimeAppInstance.$data.choices = null;
+          runtimeAppInstance.$data.text = "";
+          vm.run();
         };
 
         let debouncedCompile = debounce(compile, 1000);
@@ -293,8 +297,8 @@ Goodbye!
         <div id="debug">
           <span v-if="vm">
             <span>pc: {{vm.programCounter}}</span>
-            <stack :data="vm.stack"></stack>
-            <context :data="vm.context"></context>
+            <stack :data="vm.stack" :key="vm.programCounter"></stack>
+            <context :data="vm.context" :key="vm.programCounter"></context>
           </span>
           <span v-if="vm && srcProgramList">
             <span v-for="(instr, index) in srcProgramList">
