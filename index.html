@@ -42,12 +42,15 @@
         grid-area: toolbox;
         background: #fcc;
       }
-      
+
       .instruction.active {
         background-color: orange;
       }
 
-      .function-name, .string, .number, .label {
+      .function-name,
+      .string,
+      .number,
+      .label {
         font-family: monospace;
       }
 
@@ -95,7 +98,10 @@
     <script src="https://unpkg.com/questmark@0.0.37/dist/browser/bundle.js"></script>
     <script type="text/html" id="instruction">
       <div class="instruction" v-bind:class="{active: active}">
-        <span class="function-name" v-if="src.type === 'invoke-function-instruction'">
+        <span
+          class="function-name"
+          v-if="src.type === 'invoke-function-instruction'"
+        >
           {{src.functionName}}
         </span>
         <span class="string" v-if="src.type === 'push-string-instruction'">
@@ -104,9 +110,7 @@
         <span class="number" v-if="src.type === 'push-number-instruction'">
           {{src.value}}
         </span>
-        <span v-if="src.label" class="label">
-          {{src.label}}
-        </span>
+        <span v-if="src.label" class="label"> {{src.label}} </span>
       </div>
     </script>
     <script type="text/html" id="stack">
@@ -116,6 +120,19 @@
       <pre>{{data}}</pre>
     </script>
     <script>
+      function debounce(fn, timeout) {
+        let tID;
+        return () => {
+          const args = arguments;
+          const deferred = () => {
+            tID = null;
+            fn.apply(this, args);
+          };
+          clearTimeout(tID);
+          tID = setTimeout(deferred, timeout);
+        };
+      }
+
       require.config({
         paths: {
           vs: "https://unpkg.com/monaco-editor@latest/min/vs",
@@ -155,54 +172,57 @@ Test
           data() {
             return {
               vm: null,
-              srcProgramList: null
-            }
-          }
+              srcProgramList: null,
+            };
+          },
         });
 
         debugApp.component("instruction", {
           template: "#instruction",
           props: ["src", "active"],
           data() {
-            return {
-            }
-          }
+            return {};
+          },
         });
 
         debugApp.component("stack", {
           template: "#stack",
           props: ["data"],
           data() {
-            return {
-            }
-          }
+            return {};
+          },
         });
 
         debugApp.component("context", {
           template: "#context",
           props: ["data"],
           data() {
-            return {
-            }
-          }
+            return {};
+          },
         });
 
         const debugAppInstance = debugApp.mount("#debug");
 
+        let compile = () => {
+          const vmState = QuestmarkYarn.parse(editorInstance.getValue());
+          const vm = new Questmark.QuestVM(console.log, () => {}, {});
+          vm.loadVMState(vmState);
+          vm.run();
+          debugAppInstance.$data.vm = vm;
+          debugAppInstance.$data.srcProgramList = vmState.programList;
+        };
+
+        let debouncedCompile = debounce(compile, 1000);
+
         document
           .querySelector("#compile-yarn")
           .addEventListener("click", () => {
-            const vmState = QuestmarkYarn.parse(editorInstance.getValue());
-            console.log(vmState);
-            const vm = new Questmark.QuestVM(console.log, () => {}, {});
-            vm.loadVMState(vmState);
-            vm.run();
-            debugAppInstance.$data.vm = vm;
-            debugAppInstance.$data.srcProgramList = vmState.programList;
-            //debugAppInstance.$forceUpdate();
+            compile();
           });
 
-  
+        editorInstance.onDidChangeModelContent(() => {
+          debouncedCompile();
+        });
       });
     </script>
   </head>
@@ -210,18 +230,23 @@ Test
     <div class="container">
       <div class="editor"></div>
       <div class="playground"></div>
-      <div class="debug"><div id="debug">
-        <div v-if="vm">
-          <div>pc: {{vm.programCounter}}</div>
-          <stack :data="vm.stack"></stack>
-          <context :data="vm.context"></context>
-        </div>
-        <div v-if="vm && srcProgramList">
-          <div v-for="(instr, index) in srcProgramList">
-            <instruction :src="instr" :active="index == vm.programCounter - 1"></instruction>
+      <div class="debug">
+        <div id="debug">
+          <div v-if="vm">
+            <div>pc: {{vm.programCounter}}</div>
+            <stack :data="vm.stack"></stack>
+            <context :data="vm.context"></context>
+          </div>
+          <div v-if="vm && srcProgramList">
+            <div v-for="(instr, index) in srcProgramList">
+              <instruction
+                :src="instr"
+                :active="index == vm.programCounter - 1"
+              ></instruction>
+            </div>
           </div>
         </div>
-      </div></div>
+      </div>
       <div class="toolbox">
         <button id="compile-yarn">Compile (yarn -> tzo/questvm)</button>
       </div>
