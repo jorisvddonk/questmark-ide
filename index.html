@@ -42,17 +42,83 @@
         grid-area: toolbox;
         background: #fcc;
       }
+      
+      .instruction.active {
+        background-color: orange;
+      }
+
+      .function-name, .string, .number, .label {
+        font-family: monospace;
+      }
+
+      .function-name {
+        color: blue;
+      }
+      .function-name::before {
+        content: "invokeFunction: ";
+        color: black;
+      }
+
+      .label {
+        color: green;
+        float: right;
+      }
+
+      .string {
+        color: purple;
+      }
+      .string::before {
+        content: "\a0\a0\a0\a0pushString: ";
+        color: black;
+      }
+
+      .number {
+        color: red;
+      }
+      .number::before {
+        content: "\a0\a0\a0\a0pushNumber: ";
+        color: black;
+      }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
+      integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <script
       type="text/javascript"
       src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"
     ></script>
+    <script src="https://unpkg.com/vue@3.2.26"></script>
     <script src="https://unpkg.com/questmark-yarn@0.0.6/dist/browser/parser.js"></script>
+    <script src="https://unpkg.com/questmark@0.0.37/dist/browser/bundle.js"></script>
+    <script type="text/html" id="instruction">
+      <div class="instruction" v-bind:class="{active: active}">
+        <span class="function-name" v-if="src.type === 'invoke-function-instruction'">
+          {{src.functionName}}
+        </span>
+        <span class="string" v-if="src.type === 'push-string-instruction'">
+          {{src.value}}
+        </span>
+        <span class="number" v-if="src.type === 'push-number-instruction'">
+          {{src.value}}
+        </span>
+        <span v-if="src.label" class="label">
+          {{src.label}}
+        </span>
+      </div>
+    </script>
+    <script type="text/html" id="stack">
+      <pre>{{data}}</pre>
+    </script>
+    <script type="text/html" id="context">
+      <pre>{{data}}</pre>
+    </script>
     <script>
       require.config({
         paths: {
-          vs: "https://unpkg.com/monaco-editor@latest/min/vs"
+          vs: "https://unpkg.com/monaco-editor@latest/min/vs",
         },
       });
 
@@ -85,12 +151,58 @@ Test
           }
         );
 
+        let debugApp = Vue.createApp({
+          data() {
+            return {
+              vm: null,
+              srcProgramList: null
+            }
+          }
+        });
+
+        debugApp.component("instruction", {
+          template: "#instruction",
+          props: ["src", "active"],
+          data() {
+            return {
+            }
+          }
+        });
+
+        debugApp.component("stack", {
+          template: "#stack",
+          props: ["data"],
+          data() {
+            return {
+            }
+          }
+        });
+
+        debugApp.component("context", {
+          template: "#context",
+          props: ["data"],
+          data() {
+            return {
+            }
+          }
+        });
+
+        const debugAppInstance = debugApp.mount("#debug");
+
         document
           .querySelector("#compile-yarn")
           .addEventListener("click", () => {
             const vmState = QuestmarkYarn.parse(editorInstance.getValue());
             console.log(vmState);
+            const vm = new Questmark.QuestVM(console.log, () => {}, {});
+            vm.loadVMState(vmState);
+            vm.run();
+            debugAppInstance.$data.vm = vm;
+            debugAppInstance.$data.srcProgramList = vmState.programList;
+            //debugAppInstance.$forceUpdate();
           });
+
+  
       });
     </script>
   </head>
@@ -98,7 +210,18 @@ Test
     <div class="container">
       <div class="editor"></div>
       <div class="playground"></div>
-      <div class="debug"></div>
+      <div class="debug"><div id="debug">
+        <div v-if="vm">
+          <div>pc: {{vm.programCounter}}</div>
+          <stack :data="vm.stack"></stack>
+          <context :data="vm.context"></context>
+        </div>
+        <div v-if="vm && srcProgramList">
+          <div v-for="(instr, index) in srcProgramList">
+            <instruction :src="instr" :active="index == vm.programCounter - 1"></instruction>
+          </div>
+        </div>
+      </div></div>
       <div class="toolbox">
         <button id="compile-yarn">Compile (yarn -> tzo/questvm)</button>
       </div>
