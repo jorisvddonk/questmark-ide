@@ -162,6 +162,12 @@ Test
 <<else>>
     Foo is false!
 <<endif>>
+-> I like pie
+  I also like pie!
+-> I like cake
+  Cake is pretty good!
+
+Goodbye!
 ===`,
             language: "yarn",
             theme: "vs-dark",
@@ -203,13 +209,44 @@ Test
 
         const debugAppInstance = debugApp.mount("#debug");
 
+        const runtimeApp = Vue.createApp({
+          data() {
+            return {
+              vm: null,
+              text: "",
+              promiseResolve: null,
+              choices: null,
+            };
+          },
+          methods: {
+            select(id) {
+              this.text = "";
+              this.choices = null;
+              this.promiseResolve(id);
+            },
+          },
+        });
+        const runtimeAppInstance = runtimeApp.mount("#runtime");
+
         let compile = () => {
           const vmState = QuestmarkYarn.parse(editorInstance.getValue());
-          const vm = new Questmark.QuestVM(console.log, () => {}, {});
+          const vm = new Questmark.QuestVM(
+            (text) => {
+              runtimeAppInstance.$data.text += text;
+            },
+            (choices) => {
+              return new Promise((resolve, reject) => {
+                runtimeAppInstance.$data.promiseResolve = resolve;
+                runtimeAppInstance.$data.choices = choices;
+              });
+            },
+            {}
+          );
           vm.loadVMState(vmState);
           vm.run();
           debugAppInstance.$data.vm = vm;
           debugAppInstance.$data.srcProgramList = vmState.programList;
+          runtimeAppInstance.$data.vm = vm;
         };
 
         let debouncedCompile = debounce(compile, 1000);
@@ -223,13 +260,24 @@ Test
         editorInstance.onDidChangeModelContent(() => {
           debouncedCompile();
         });
+
+        compile(); // immediately compile!
       });
     </script>
   </head>
   <body>
     <div class="container">
       <div class="editor"></div>
-      <div class="playground"></div>
+      <div class="playground">
+        <div id="runtime">
+          <div v-if="vm">
+            <pre>{{text}}</pre>
+            <div v-for="choice in choices">
+              <button @click="select(choice.id)">{{choice.title}}</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="debug">
         <div id="debug">
           <div v-if="vm">
