@@ -138,7 +138,31 @@
     <script type="text/html" id="context">
       <pre>{{data}}</pre>
     </script>
-    <script>
+    <script type="module">
+      import { loadWASM } from "https://cdn.esm.sh/v62/onigasm@2.2.5/es2021/onigasm.js";
+      import { Registry } from "https://cdn.esm.sh/v62/monaco-textmate@3.0.1/es2021/monaco-textmate.js";
+      import { wireTmGrammars } from "https://cdn.esm.sh/v62/monaco-editor-textmate@3.0.0/es2021/monaco-editor-textmate.js";
+
+      await loadWASM(
+        "https://cdn.jsdelivr.net/npm/onigasm@2.2.5/lib/onigasm.wasm"
+      );
+
+      const registry = new Registry({
+        getGrammarDefinition: async (scopeName) => {
+          return {
+            format: "json",
+            content: JSON.parse(
+              atob(
+                "ewoJIiRzY2hlbWEiOiAiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL21hcnRpbnJpbmcvdG1sYW5ndWFnZS9tYXN0ZXIvdG1sYW5ndWFnZS5qc29uIiwKCSJuYW1lIjogIllhcm4gU3Bpbm5lciIsCgkicGF0dGVybnMiOiBbCgkJewoJCQkiaW5jbHVkZSI6ICIjbm9kZXMiCgkJfQoJXSwKCSJyZXBvc2l0b3J5IjogewoJCSJub2RlcyI6IHsKCQkJInBhdHRlcm5zIjogWwoJCQkJewoJCQkJCSJjb21tZW50IjogIkhlYWRlciBmaWVsZCBuYW1lIiwKCQkJCQkibWF0Y2giOiAiXlxcdytcXDoiLAoJCQkJCSJuYW1lIjogImtleXdvcmQub3RoZXIiCgkJCQl9LAoJCQkJewoJCQkJCSJtYXRjaCI6ICIoPzw9OikuKiQiLAoJCQkJCSJuYW1lIjogImtleXdvcmQuY29udHJvbCIKCQkJCX0sCgkJCQl7CgkJCQkJImluY2x1ZGUiOiAiI25vZGVib2R5IgoJCQkJfQoJCQldCgkJfSwKCQkibm9kZWJvZHkiOiB7CgkJCSJiZWdpbiI6ICItLS0iLAoJCQkiZW5kIjogIj09PSIsCgkJCSJwYXR0ZXJucyI6IFsKCQkJCXsKCQkJCQkiaW5jbHVkZSI6ICIjY29tbWVudHMiCgkJCQl9LAoJCQkJewoJCQkJCSJpbmNsdWRlIjogIiNsaW5lcyIKCQkJCX0sCgkJCQl7CgkJCQkJImluY2x1ZGUiOiAiI2NvbW1hbmRzIgoJCQkJfSwKCQkJCXsKCQkJCQkiaW5jbHVkZSI6ICIjb3B0aW9ucyIKCQkJCX0KCQkJXQoJCX0sCgkJImlubGluZV9leHByZXNzaW9ucyI6IHsKCQkJImJlZ2luIjogInsiLAoJCQkiZW5kIjogIn0iLAoJCQkibmFtZSI6ICJrZXl3b3JkLm90aGVyIiwKCQkJInBhdHRlcm5zIjogWwoJCQkJewoJCQkJCSJpbmNsdWRlIjogIiNzdHJpbmdzIgoJCQkJfSwKCQkJCXsKCQkJCQkiaW5jbHVkZSI6ICIjb3BlcmF0b3JzIgoJCQkJfSwKCQkJCXsKCQkJCQkiaW5jbHVkZSI6ICIjdmFyaWFibGVzIgoJCQkJfSwKCQkJCXsKCQkJCQkiaW5jbHVkZSI6ICIjbnVtYmVycyIKCQkJCX0KCQkJXQoJCX0sCgoJCSJjb21tZW50cyI6IHsKCQkJInBhdHRlcm5zIjogW3sKCQkJCQkibmFtZSI6ICJjb21tZW50LmxpbmUuZG91YmxlLXNsYXNoLnlhcm5zcGlubmVyIiwKCQkJCQkiYmVnaW4iOiAiXC9cLyIsCgkJCQkJImVuZCI6ICIkIgoJCQl9XQoJCX0sCgkJImNvbW1hbmRzIjogewoJCQkicGF0dGVybnMiOiBbCgkJCQl7CgkJCQkJIm5hbWUiOiAia2V5d29yZC5vdGhlciIsCgkJCQkJImJlZ2luIjogIlxcPFxcPCIsCgkJCQkJImVuZCI6ICJcXD5cXD4iLAoJCQkJCSJwYXR0ZXJucyI6IFsKCQkJCQkJewoJCQkJCQkJImNvbW1lbnQiOiAiRmlyc3Qgd29yZCBpbiBhIGNvbW1hbmQiLAoJCQkJCQkJIm1hdGNoIjogIig/PD1cXDxcXDwpXFx3KyIsCgkJCQkJCQkibmFtZSI6ICJrZXl3b3JkLmNvbnRyb2wiCgkJCQkJCX0sCgkJCQkJCXsKCQkJCQkJCSJpbmNsdWRlIjogIiNrZXl3b3JkcyIKCQkJCQkJfSwKCQkJCQkJewoJCQkJCQkJImluY2x1ZGUiOiAiI3N0cmluZ3MiCgkJCQkJCX0sCgkJCQkJCXsKCQkJCQkJCSJpbmNsdWRlIjogIiNvcGVyYXRvcnMiCgkJCQkJCX0sCgkJCQkJCXsKCQkJCQkJCSJpbmNsdWRlIjogIiN2YXJpYWJsZXMiCgkJCQkJCX0sCgkJCQkJCXsKCQkJCQkJCSJpbmNsdWRlIjogIiNudW1iZXJzIgoJCQkJCQl9CgkJCQkJXQoJCQkJfQoJCQldCgkJfSwKCQkidmFyaWFibGVzIjogewoJCQkicGF0dGVybnMiOiBbewoJCQkJIm5hbWUiOiAidmFyaWFibGUub3RoZXIiLAoJCQkJIm1hdGNoIjogIlxcJFxcdysiCgkJCX1dCgkJfSwKCQkia2V5d29yZHMiOiB7CgkJCSJwYXR0ZXJucyI6IFt7CgkJCQkibmFtZSI6ICJrZXl3b3JkLmNvbnRyb2wueWFybnNwaW5uZXIiLAoJCQkJIm1hdGNoIjogIlxcYihpZnxzZXR8ZW5kaWZ8ZWxzZXxlbHNlaWYpXFxiIgoJCQl9XQoJCX0sCgkJIm9wZXJhdG9ycyI6IHsKCQkJInBhdHRlcm5zIjogWwoJCQkJewoJCQkJCSJuYW1lIjogImtleXdvcmQub3BlcmF0b3IiLAoJCQkJCSJtYXRjaCI6ICJcXCt8LXxcXCpcXC98XFwhfFxcPHxcXD58PXw9PXxcXDw9fFxcPj0iCgkJCQl9LAoJCQkJewoJCQkJCSJuYW1lIjogImtleXdvcmQub3BlcmF0b3IiLAoJCQkJCSJtYXRjaCI6ICJcXGIoaXN8dG98bm90fG5lfGVxfGxlfGdlfGd0fGx0fGFuZHxvcilcXGIiCgkJCQl9CgkJCV0KCQl9LAoJCSJzdHJpbmdzIjogewoJCQkibmFtZSI6ICJzdHJpbmcucXVvdGVkLmRvdWJsZS55YXJuc3Bpbm5lciIsCgkJCSJiZWdpbiI6ICJcIiIsCgkJCSJlbmQiOiAiXCIiLAoJCQkicGF0dGVybnMiOiBbCgkJCQl7CgkJCQkJIm5hbWUiOiAiY29uc3RhbnQuY2hhcmFjdGVyLmVzY2FwZS55YXJuc3Bpbm5lciIsCgkJCQkJIm1hdGNoIjogIlxcXFwuIgoJCQkJfQoJCQldCgkJfSwKCQkibnVtYmVycyI6IHsKCQkJIm5hbWUiOiAiY29uc3RhbnQubnVtZXJpYyIsCgkJCSJtYXRjaCI6ICJcXGIoWystXT8oWzAtOV0qWy5dKT9bMC05XSspXFxiIgoKCQl9LAoJCSJsaW5lcyI6IHsKCQkJInBhdHRlcm5zIjogWwoJCQkJewoJCQkJCSJjb21tZW50IjogIkhhc2h0YWdzIiwKCQkJCQkibmFtZSI6ICJjb25zdGFudC5sYW5ndWFnZSIsCgkJCQkJIm1hdGNoIjogIiNbXlxcc10rIgoJCQkJfSwKCQkJCXsKCQkJCQkiY29tbWVudCI6ICJOYW1lIiwKCQkJCQkibmFtZSI6ICJtYXJrdXAuYm9sZCIsCgkJCQkJIm1hdGNoIjogIig/PD1efC1cXD4pXFxzKlxcdytcXDoiCgkJCQkJCgkJCQl9LAoJCQkJewoJCQkJCSJjb21tZW50IjogIlNob3J0Y3V0IG9wdGlvbiIsCgkJCQkJIm5hbWUiOiAia2V5d29yZC5jb250cm9sIiwKCQkJCQkibWF0Y2giOiAiXlxccyotXFw+IgoJCQkJfSwKCQkJCXsKCQkJCQkiaW5jbHVkZSI6ICIjY29tbWFuZHMiCgkJCQl9LAoJCQkJewoJCQkJCSJpbmNsdWRlIjogIiNpbmxpbmVfZXhwcmVzc2lvbnMiCgkJCQl9LAoJCQkJewoJCQkJCSJpbmNsdWRlIjogIiNmb3JtYXRfZnVuY3Rpb25zIgoJCQkJfQoJCQldCgkJfSwKCQkib3B0aW9ucyI6IHsKCQkJInBhdHRlcm5zIjogWwoJCQkJewoJCQkJCSJiZWdpbiI6ICJcXFtcXFsiLAoJCQkJCSJlbmQiOiAiXFxdXFxdIiwKCQkJCQkibmFtZSI6ICJrZXl3b3JkLm90aGVyIiwKCQkJCQkicGF0dGVybnMiOiBbCgkJCQkJCXsKCQkJCQkJCSJtYXRjaCI6ICJcXHwiLAoJCQkJCQkJIm5hbWUiOiAia2V5d29yZC5vdGhlciIKCQkJCQkJfSwKCQkJCQkJewoJCQkJCQkJImluY2x1ZGUiOiAiI2lubGluZV9leHByZXNzaW9ucyIKCQkJCQkJfSwKCQkJCQkJewoJCQkJCQkJImluY2x1ZGUiOiAiI2Zvcm1hdF9mdW5jdGlvbnMiCgkJCQkJCX0sCQkJCQkJCgkJCQkJCXsKCQkJCQkJCSJjb21tZW50IjogIkRpc3BsYXllZCB0ZXh0IGluIGFuIG9wdGlvbiIsCgkJCQkJCQkibWF0Y2giOiAiW157fFxcXV0rIiwKCQkJCQkJCSJuYW1lIjogImtleXdvcmQuY29udHJvbCIJCQkJCQkJCgkJCQkJCX0KCQkJCQldCgkJCQl9CgkJCV0KCQl9LAoJCSJmb3JtYXRfZnVuY3Rpb25zIjogewoJCQkicGF0dGVybnMiOiBbewoJCQkJImJlZ2luIjogIlxcWyg/IVxcWykiLAoJCQkJImVuZCI6ICJcXF0iLAoJCQkJIm5hbWUiOiAia2V5d29yZC5vdGhlci5mb3JtYXRfZnVuY3Rpb24iLAoJCQkJInBhdHRlcm5zIjogWwoJCQkJCXsKCQkJCQkJImluY2x1ZGUiOiAiI2lubGluZV9leHByZXNzaW9ucyIKCQkJCQl9LAoJCQkJCXsKCQkJCQkJIm5hbWUiOiAic3RyaW5nLnF1b3RlZC5kb3VibGUueWFybnNwaW5uZXIuZm9ybWF0X2Z1bmN0aW9uIiwKCQkJCQkJImJlZ2luIjogIlwiIiwKCQkJCQkJImVuZCI6ICJcIiIsCgkJCQkJCSJwYXR0ZXJucyI6IFsKCQkJCQkJCXsKCQkJCQkJCQkibmFtZSI6ICJrZXl3b3JkLm90aGVyLmZvcm1hdF9mdW5jdGlvbi5wbGFjZWhvbGRlciIsCgkJCQkJCQkJIm1hdGNoIjogIiUiCgkJCQkJCQl9LAoJCQkJCQkJewoJCQkJCQkJCSJuYW1lIjogImNvbnN0YW50LmNoYXJhY3Rlci5lc2NhcGUueWFybnNwaW5uZXIuZm9ybWF0X2Z1bmN0aW9uIiwKCQkJCQkJCQkibWF0Y2giOiAiXFxcXC4iCgkJCQkJCQl9CgkJCQkJCV0KCQkJCQkJCgkJCQkJfSwKCQkJCQl7CgkJCQkJCSJtYXRjaCI6ICJbXns9XFxdXSsiLAoJCQkJCQkibmFtZSI6ICJrZXl3b3JkLmNvbnRyb2wiCQkJCQkJCQoJCQkJCX0KCQkJCV0KCQkJfV0KCQl9Cgl9LAoJInNjb3BlTmFtZSI6ICJzb3VyY2UueWFybnNwaW5uZXIiCn0="
+              )
+            ) // from https://github.com/YarnSpinnerTool/VSCodeExtension/blob/03593206feb4c959177213fa6a98af3d01638325/syntaxes/yarnspinner.tmLanguage.json,
+          };
+        },
+      });
+
+      const grammars = new Map();
+      grammars.set("yarn", "source.yarnspinner");
+
       function debounce(fn, timeout) {
         let tID;
         return () => {
@@ -169,6 +193,8 @@
       };
 
       require(["vs/editor/editor.main"], function (a) {
+        monaco.languages.register({ id: "yarn" });
+
         const editorInstance = monaco.editor.create(
           document.querySelector(".editor"),
           {
@@ -192,6 +218,8 @@ Goodbye!
             theme: "vs-dark",
           }
         );
+
+        wireTmGrammars(monaco, registry, grammars, editorInstance);
 
         let debugApp = Vue.createApp({
           data() {
