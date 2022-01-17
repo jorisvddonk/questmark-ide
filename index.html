@@ -327,7 +327,10 @@ title: Rude
                 .join("\n")
             );
           } catch (e) {}
-          const vmState = parseResult.vmState;
+          loadVM(parseResult.vmState);
+        };
+
+        const loadVM = (vmState) => {
           const vm = new Questmark.QuestVM(
             (text) => {
               runtimeAppInstance.$data.text += text;
@@ -342,14 +345,18 @@ title: Rude
             },
             {}
           );
+          debugAppInstance.$data.srcVMState = JSON.stringify(vmState, null, 2);
           vm.loadVMState(vmState);
           debugAppInstance.$data.vm = Vue.readonly(Vue.reactive(vm));
           debugAppInstance.$data.srcProgramList = vmState.programList;
-          debugAppInstance.$data.srcVMState = vmState;
           runtimeAppInstance.$data.vm = Vue.readonly(Vue.reactive(vm));
           runtimeAppInstance.$data.choices = null;
           runtimeAppInstance.$data.text = "";
           vm.run();
+        };
+
+        let restart = () => {
+          loadVM(JSON.parse(debugAppInstance.$data.srcVMState));
         };
 
         let debouncedCompile = debounce(compile, 1000);
@@ -360,9 +367,15 @@ title: Rude
             compile();
           });
 
+          document
+          .querySelector("#restart")
+          .addEventListener("click", () => {
+            restart();
+          });
+
         let download = () => {
           const blob = new Blob(
-            [JSON.stringify(debugAppInstance.$data.srcVMState, null, 2)],
+            [debugAppInstance.$data.srcVMState],
             { type: "application/json" }
           );
           const blobURL =
@@ -425,6 +438,7 @@ title: Rude
           Compile (yarn -> tzo/questvm)
         </button>
         <button id="download">Download compiled code .json</button>
+        <button id="restart">Restart QuestVM</button>
       </div>
     </div>
   </body>
