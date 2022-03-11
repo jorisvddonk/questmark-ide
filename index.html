@@ -30,8 +30,13 @@
         grid-area: editor;
       }
 
+      .flow {
+        grid-area: flow;
+      }
+
       .playground,
       .debug,
+      .flow,
       .toolbox {
         background: #2c2c2c;
         color: white;
@@ -138,6 +143,7 @@
     <script type="text/html" id="context">
       <pre>{{data}}</pre>
     </script>
+    <script src="https://unpkg.com/uqm-files-parsers@1.0.10/dist/browser/index.js"></script>
     <script type="module">
       import { loadWASM } from "https://cdn.esm.sh/v62/onigasm@2.2.5/es2021/onigasm.js";
       import { Registry } from "https://cdn.esm.sh/v62/monaco-textmate@3.0.1/es2021/monaco-textmate.js";
@@ -178,7 +184,7 @@
 
       require.config({
         paths: {
-          vs: "https://unpkg.com/monaco-editor@latest/min/vs",
+          vs: "https://unpkg.com/monaco-editor@latest/min/vs"
         },
       });
 
@@ -192,7 +198,20 @@
         },
       };
 
-      require(["vs/editor/editor.main"], function (a) {
+          function detectFileFormat(src) {
+            if (src.trim().startsWith("title")) {
+              return "Yarn";
+            } else if (src.trim().startsWith("@PLAYER_CHOICES@")) {
+              return "ConvoScript";
+            } else if (src.trim().startsWith("# QUESTMARK-OPTIONS-HEADER")) {
+              return "QuestMark";
+            } else {
+              console.warn("Could not determine input file format -- assuming QuestMark!");
+              return "QuestMark"; // assume QuestMark
+            }
+          }
+
+          require(["vs/editor/editor.main"], function (a, b) {
         monaco.languages.register({ id: "yarn" });
 
         const editorInstance = monaco.editor.create(
@@ -314,21 +333,114 @@ title: Rude
               decorations = decorations.concat(newDecorations);
             },
           };
-          const parseResult = QuestmarkYarn.parse(
-            editorInstance.getValue(),
-            errorListener
-          );
-          try {
-            console.log(
-              parseResult.tokens
-                .map(
-                  (token) =>
-                    token.tokenSource.vocabulary.symbolicNames[token.type]
-                )
-                .join("\n")
+          const src = editorInstance.getValue();
+          const fileFormat = detectFileFormat(src);
+          if (fileFormat === "Yarn") {
+            const parseResult = QuestmarkYarn.parse(
+              src,
+              errorListener
             );
-          } catch (e) {}
-          loadVM(parseResult.vmState);
+            try {
+              console.log(
+                parseResult.tokens
+                  .map(
+                    (token) =>
+                      token.tokenSource.vocabulary.symbolicNames[token.type]
+                  )
+                  .join("\n")
+              );
+            } catch (e) { }
+            loadVM(parseResult.vmState);
+          } else if (fileFormat === "ConvoScript") {
+            const parseResult = UqmFilesParsers.parseConvoScript(src);
+            console.log(parseResult);
+            const vmState = {
+              type: "questmarkVMState",
+              stack: [],
+              context: {},
+              programList: [],
+              programCounter: 0,
+              exit: false,
+              pause: false,
+              children: []
+            }
+            function pushString(str) {
+              vmState.programList.push({
+                type: 'push-string-instruction',
+                value: str,
+                name: undefined
+              });
+            };
+            function pushNumber(num) {
+              vmState.programList.push({
+                type: 'push-number-instruction',
+                value: num,
+                name: undefined
+              });
+            };
+            function invokeFunction(funcName) {
+              vmState.programList.push({
+                type: 'invoke-function-instruction',
+                functionName: funcName,
+                name: funcName === "{" ? "openBrace" : (funcName === "}" ? "closeBrace" : funcName)
+              });
+            };
+            function setLabel(lblName) {
+              //vmState.labelMap[lblName] = vmState.programList.length - 1;
+              vmState.programList[vmState.programList.length - 1].label = lblName;
+            }
+
+            // go to first decision by default
+            pushString(parseResult.decisions[0].id);
+            invokeFunction('goto');
+            parseResult.decisions.forEach(decision => {
+              invokeFunction('{');
+              invokeFunction('nop');
+              setLabel(decision.id);
+              decision.choiceIds.forEach(choiceID => {
+                const choice = parseResult.choices.find(x => x.id === choiceID);
+                if (choice === undefined || choice === null) {
+                  throw new Error("Choice not found: " + choiceID);
+                }
+                const playerStatement = parseResult.statements.find(x => x.id === choice.playerStatementId);
+                if (playerStatement === undefined || playerStatement === null) {
+                  throw new Error("PlayerStatement not found: " + choice.playerStatementId + " for choice: " + choice.id);
+                }
+                pushString(playerStatement.text);
+                invokeFunction("ppc");
+                pushNumber(4);
+                invokeFunction("+")
+                invokeFunction("{");
+                invokeFunction("nop");
+                choice.script.forEach(script => {
+                  switch(script.type) {
+                    case "DISPLAY": 
+                      const statement = parseResult.statements.find(x => x.id === script.statementId);
+                      if (statement === undefined || statement === null) {
+                        throw new Error("Choice statement not found: " + script.statementId + " for choice: " + choice.id);
+                      }
+                      pushString(statement.text);
+                      invokeFunction("emit");
+                      break;
+                    case "GOTO":
+                      pushString(script.decisionId);
+                      invokeFunction("goto");
+                      break;
+                    default:
+                      console.warn("UNIMPLEMENTED SCRIPT TYPE: " + script.type);
+                      break;
+                  }
+                });
+                // todo: script here!
+                invokeFunction("}");
+                invokeFunction("response");
+              });
+              invokeFunction("getResponse");
+              invokeFunction("goto");
+            });
+            console.log(vmState);
+            loadVM(vmState);
+          }
         };
 
         const loadVM = (vmState) => {
@@ -400,6 +512,7 @@ title: Rude
 
         compile(); // immediately compile!
       });
+
     </script>
   </head>
   <body>
@@ -416,6 +529,9 @@ title: Rude
             </span>
           </span>
         </div>
+      </div>
+      <div class="flow" id="flow">
+
       </div>
       <div class="debug">
         <div id="debug">
