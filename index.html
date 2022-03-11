@@ -440,6 +440,9 @@ title: Rude
             });
             console.log(vmState);
             loadVM(vmState);
+          } else if (fileFormat === "QuestMark") {
+            const parsed = Questmark.parseMarkdown(src);
+            loadVM(parsed.qvmState);
           }
         };
 
