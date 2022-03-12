@@ -155,6 +155,16 @@
 
       const registry = new Registry({
         getGrammarDefinition: async (scopeName) => {
+          if (scopeName === "source.convoscript") {
+            return {
+              format: "json",
+              content: JSON.parse(
+                atob(
+                  'ewoJIiRzY2hlbWEiOiAiY29udm9zY3JpcHQiLAoJIm5hbWUiOiAiQ29udm9TY3JpcHQiLAoJInBhdHRlcm5zIjogWwoJCXsKCQkJImluY2x1ZGUiOiAiI25vZGVzIgoJCX0KCV0sCgkicmVwb3NpdG9yeSI6IHsKCQkibm9kZXMiOiB7CgkJCSJwYXR0ZXJucyI6IFsKCQkJCXsKCQkJCQkiY29tbWVudCI6ICJTZWN0aW9uIiwKCQkJCQkibWF0Y2giOiAiXkAuKiQiLAoJCQkJCSJuYW1lIjogImtleXdvcmQub3RoZXIuc2VjdGlvbi5jb252b3NjcmlwdCIKCQkJCX0sCgkJCQl7CgkJCQkJImNvbW1lbnQiOiAiU2VjdGlvbiIsCgkJCQkJIm1hdGNoIjogIlNUQVRFTUVOVF9cXFMqJCIsCgkJCQkJIm5hbWUiOiAia2V5d29yZC5vdGhlci5zdGF0ZW1lbnQuY29udm9zY3JpcHQiCgkJCQl9LAoJCQkJewoJCQkJCSJjb21tZW50IjogIlNlY3Rpb24iLAoJCQkJCSJtYXRjaCI6ICJDSE9JQ0VfXFxTKiQiLAoJCQkJCSJuYW1lIjogImtleXdvcmQub3RoZXIuY2hvaWNlLmNvbnZvc2NyaXB0IgoJCQkJfSwKICAgICAgICB7CgkJCQkJImNvbW1lbnQiOiAiU2VjdGlvbiIsCgkJCQkJIm1hdGNoIjogIkRFQ0lTSU9OX1xcUyokIiwKCQkJCQkibmFtZSI6ICJrZXl3b3JkLm90aGVyLmRlY2lzaW9uLmNvbnZvc2NyaXB0IgoJCQkJfSwKCQkJCXsKCQkJCQkibWF0Y2giOiAiXiMuKiQiLAoJCQkJCSJuYW1lIjogImtleXdvcmQub3RoZXIuaGVhZGVyLmNvbnZvc2NyaXB0IgoJCQkJfSwKCQkJCXsKCQkJCQkibWF0Y2giOiAiXkdPVE8gLiokIiwKCQkJCQkibmFtZSI6ICJrZXl3b3JkLmNvbnRyb2wuZ290by5jb252b3NjcmlwdCIKCQkJCX0sCgkJCQl7CgkJCQkJIm1hdGNoIjogIl5JRiAuKiQiLAoJCQkJCSJuYW1lIjogImtleXdvcmQuY29uZGl0aW9uLmNvbnZvc2NyaXB0IgoJCQkJfSwKCQkJCXsKCQkJCQkibWF0Y2giOiAiXkVORElGLiokIiwKCQkJCQkibmFtZSI6ICJrZXl3b3JkLmNvbmRpdGlvbi5jb252b3NjcmlwdCIKCQkJCX0sCgkJCQl7CgkJCQkJIm1hdGNoIjogIl5SRU1PVkUgLiokIiwKCQkJCQkibmFtZSI6ICJrZXl3b3JkLmNvbnRyb2wucmVtb3ZlLmNvbnZvc2NyaXB0IgoJCQkJfSwKCQkJCXsKCQkJCQkibWF0Y2giOiAiXkRJU1BMQVkgLiokIiwKCQkJCQkibmFtZSI6ICJrZXl3b3JkLmNvbnRyb2wuZGlzcGxheS5jb252b3NjcmlwdCIKCQkJCX0KCQkJXQoJCX0KCX0sCgkic2NvcGVOYW1lIjogInNvdXJjZS5jb252b3NjcmlwdCIKfQ=='
+                )
+              )
+            };
+          }
           return {
             format: "json",
             content: JSON.parse(
@@ -165,9 +175,9 @@
           };
         },
       });
-
       const grammars = new Map();
       grammars.set("yarn", "source.yarnspinner");
+      grammars.set("convoscript", "source.convoscript");
 
       function debounce(fn, timeout) {
         let tID;
@@ -213,6 +223,17 @@
 
           require(["vs/editor/editor.main"], function (a, b) {
         monaco.languages.register({ id: "yarn" });
+        monaco.languages.register({ id: "convoscript" });
+
+        monaco.editor.defineTheme('mytheme', {
+          base: 'vs-dark',
+          inherit: true,
+          rules: [
+            { token: 'keyword.other.section.convoscript', foreground: 'FF2211', background: '003355', fontStyle: 'bold italic' },
+            { token: 'keyword.other.header.convoscript', foreground: '44FF22' }
+          ],
+          colors: {}
+        });
 
         const editorInstance = monaco.editor.create(
           document.querySelector(".editor"),
@@ -247,7 +268,7 @@ title: Rude
   Sigh. See?
 ===`,
             language: "yarn",
-            theme: "vs-dark",
+            theme: "mytheme",
             automaticLayout: true
           }
         );
@@ -336,6 +357,7 @@ title: Rude
           const src = editorInstance.getValue();
           const fileFormat = detectFileFormat(src);
           if (fileFormat === "Yarn") {
+            monaco.editor.setModelLanguage(editorInstance.getModel(), "yarn");
             const parseResult = QuestmarkYarn.parse(
               src,
               errorListener
@@ -352,6 +374,7 @@ title: Rude
             } catch (e) { }
             loadVM(parseResult.vmState);
           } else if (fileFormat === "ConvoScript") {
+            monaco.editor.setModelLanguage(editorInstance.getModel(), "convoscript");
             const parseResult = UqmFilesParsers.parseConvoScript(src);
             console.log(parseResult);
             const vmState = {
@@ -441,6 +464,7 @@ title: Rude
             console.log(vmState);
             loadVM(vmState);
           } else if (fileFormat === "QuestMark") {
+            monaco.editor.setModelLanguage(editorInstance.getModel(), "markdown");
             const parsed = Questmark.parseMarkdown(src);
             loadVM(parsed.qvmState);
           }
