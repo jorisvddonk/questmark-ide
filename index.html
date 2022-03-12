@@ -133,6 +133,14 @@
         text-decoration-color: red;
         background-color: rgba(255, 0, 0, 0.5);
       }
+
+      .dialogText {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 0.5em;
+        size: 14em;
+        display: inline-block;
+        line-height: 1.5em;
+      }
     </style>
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"
@@ -576,7 +584,7 @@ title: Rude
         <div id="runtime">
           <span v-if="vm">
             <span>
-              <pre>{{text}}</pre>
+              <span class="dialogText">{{text}}</span>
               <div v-for="choice in choices">
                 <button @click="select(choice.id)">{{choice.title}}</button>
               </div>
