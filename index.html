@@ -32,6 +32,10 @@
         border: 1px #11F;
         text-decoration: underline;
       }
+      .toolbox .syntax-detect {
+        margin-left: 0.5em;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
 
       .container {
         display: grid;
@@ -645,6 +649,9 @@ title: Rude
         </button>
         <button id="download">Download compiled code .json</button>
         <button id="restart">Restart QuestVM</button>
+        <span class="syntax-detect">
+          <span v-if="forcedSyntax">Forced</span><span v-if="!forcedSyntax">Detected</span> syntax: <em>{{syntax}}</em>
+        </span>
       </div>
       <div class="playground">
         <div id="runtime">
