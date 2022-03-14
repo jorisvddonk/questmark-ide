@@ -208,7 +208,7 @@
     <script type="text/html" id="context">
       <pre>{{data}}</pre>
     </script>
-    <script src="https://unpkg.com/uqm-files-parsers@1.0.10/dist/browser/index.js"></script>
+    <script src="https://unpkg.com/uqm-files-parsers@1.0.11/dist/browser/index.js"></script>
     <script type="module">
       import { loadWASM } from "https://cdn.esm.sh/v62/onigasm@2.2.5/es2021/onigasm.js";
       import { Registry } from "https://cdn.esm.sh/v62/monaco-textmate@3.0.1/es2021/monaco-textmate.js";
@@ -538,9 +538,91 @@ title: Rude
               vmState.programList[vmState.programList.length - 1].label = lblName;
             }
 
+            // start by initializing the initial state
+            parseResult.states.forEach(state => {
+              pushNumber(parseInt(state.value));
+              pushString(state.id);
+              invokeFunction("setContext");
+            });
+
             // go to first decision by default
             pushString(parseResult.decisions[0].id);
             invokeFunction('goto');
+
+            function parseScript(scriptBlock) {
+              scriptBlock.forEach(script => {
+                switch(script.type) {
+                  case "DISPLAY": 
+                    const statement = parseResult.statements.find(x => x.id === script.statementId);
+                    if (statement === undefined || statement === null) {
+                      throw new Error("Choice statement not found: " + script.statementId + " for choice: " + choice.id);
+                    }
+                    pushString(statement.text);
+                    invokeFunction("emit");
+                    break;
+                  case "GOTO":
+                    pushString(script.decisionId);
+                    invokeFunction("goto");
+                    break;
+                  case "INC":
+                    pushNumber(1);
+                    pushString(script.variable);
+                    invokeFunction("getContext");
+                    invokeFunction("plus");
+                    pushString(script.variable);
+                    invokeFunction("setContext");
+                    break;
+                  case "DEC":
+                    pushNumber(1);
+                    pushString(script.variable);
+                    invokeFunction("getContext");
+                    invokeFunction("min");
+                    pushString(script.variable);
+                    invokeFunction("setContext");
+                    break;
+                  case "CONDITION":
+                    // NOTE: this only supports *simple* expressions!
+                    if (script.value === "true") {
+                      pushNumber(1);
+                    } else if (script.value === "false") {
+                      pushNumber(0);
+                    } else {
+                      pushNumber(parseInt(script.value));
+                    }
+                    if (script.variable === undefined) {
+                      // boolean op
+                      pushNumber(0);
+                    } else {
+                      pushString(script.variable);
+                      invokeFunction("getContext");
+                    }
+                    if (script.comparator == "<") {
+                      invokeFunction("lt");
+                    } else if (script.comparator == ">") {
+                      invokeFunction("gt");
+                    } else if (script.comparator == "=") {
+                      invokeFunction("eq");
+                    } else if (script.comparator == "==") {
+                      invokeFunction("eq");
+                    } else if (script.comparator === undefined) {
+                      // boolean op
+                      invokeFunction("gt");
+                    } else {
+                      console.warn("UNIMPLEMENTED comparator: " + script.comparator + " -- assuming `gt`");
+                      invokeFunction("gt");
+                    }
+                    invokeFunction("jgz");
+                    invokeFunction("{");
+                    parseScript(script.body);
+                    invokeFunction("}");
+                    break;
+                  default:
+                    console.warn("UNIMPLEMENTED SCRIPT TYPE: " + script.type);
+                    break;
+                }
+              });
+            };
+
             parseResult.decisions.forEach(decision => {
               invokeFunction('{');
               invokeFunction('nop');
@@ -560,26 +642,7 @@ title: Rude
                 invokeFunction("+")
                 invokeFunction("{");
                 invokeFunction("nop");
-                choice.script.forEach(script => {
-                  switch(script.type) {
-                    case "DISPLAY": 
-                      const statement = parseResult.statements.find(x => x.id === script.statementId);
-                      if (statement === undefined || statement === null) {
-                        throw new Error("Choice statement not found: " + script.statementId + " for choice: " + choice.id);
-                      }
-                      pushString(statement.text);
-                      invokeFunction("emit");
-                      break;
-                    case "GOTO":
-                      pushString(script.decisionId);
-                      invokeFunction("goto");
-                      break;
-                    default:
-                      console.warn("UNIMPLEMENTED SCRIPT TYPE: " + script.type);
-                      break;
-                  }
-                });
-                // todo: script here!
+                parseScript(choice.script);
                 invokeFunction("}");
                 invokeFunction("response");
               });
