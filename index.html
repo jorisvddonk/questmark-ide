@@ -15,6 +15,7 @@
       .toolbox {
         background: #59f;
         color: white;
+        position: relative;
       }
       .toolbox button {
         background: #44F;
@@ -35,6 +36,31 @@
       .toolbox .syntax-detect {
         margin-left: 0.5em;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      .toolbox .menu {
+        visibility: hidden;
+      }
+      .toolbox .menubtn + .menu:active, .toolbox .menubtn:focus + .menu {
+        visibility: visible;
+      }
+      .toolbox .menu-parent {
+        position: relative;
+      }
+      .toolbox .menu {
+        position: absolute;
+        width: auto;
+        height: auto;
+        bottom: 1em;
+        left: 0px;
+        min-width: 20em;
+      }
+      .toolbox .menu ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      .toolbox .menu ul button {
+        width: 100%;
       }
 
       .container {
@@ -649,8 +675,26 @@ title: Rude
         </button>
         <button id="download">Download compiled code .json</button>
         <button id="restart">Restart QuestVM</button>
-        <span class="syntax-detect">
-          <span v-if="forcedSyntax">Forced</span><span v-if="!forcedSyntax">Detected</span> syntax: <em>{{syntax}}</em>
+        <span class="menu-parent">
+          <span class="syntax-detect menubtn" title="Syntax" tabindex="-1">
+            <span v-if="forcedSyntax">Forced</span><span v-if="!forcedSyntax">Detected</span> syntax: <em>{{syntax}}</em>
+          </span>
+          <nav class="menu">
+            <ul>
+              <li>
+                <button @click="forceSyntax('Yarn')">Force Syntax: Yarn</button>
+              </li>
+              <li>
+                <button @click="forceSyntax('QuestMark')">Force Syntax: QuestMark</button>
+              </li>
+              <li>
+                <button @click="forceSyntax('ConvoScript')">Force Syntax: ConvoScript</button>
+              </li>
+              <li>
+                <button @click="stopForceSyntax()">Force Syntax: Stop forcing syntax</button>
+              </li>
+            </ul>
+          </nav>
         </span>
       </div>
       <div class="playground">
