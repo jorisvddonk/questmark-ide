@@ -243,20 +243,7 @@
         },
       };
 
-          function detectFileFormat(src) {
-            if (src.trim().startsWith("title")) {
-              return "Yarn";
-            } else if (src.trim().startsWith("@PLAYER_CHOICES@")) {
-              return "ConvoScript";
-            } else if (src.trim().startsWith("# QUESTMARK-OPTIONS-HEADER")) {
-              return "QuestMark";
-            } else {
-              console.warn("Could not determine input file format -- assuming QuestMark!");
-              return "QuestMark"; // assume QuestMark
-            }
-          }
-
-          require(["vs/editor/editor.main"], function (a, b) {
+      require(["vs/editor/editor.main"], function (a, b) {
         monaco.languages.register({ id: "yarn" });
         monaco.languages.register({ id: "convoscript" });
 
@@ -365,6 +352,80 @@ title: Rude
         });
         const runtimeAppInstance = runtimeApp.mount("#runtime");
 
+        const editorToolbox = Vue.createApp({
+          data() {
+            return {
+              syntax: null,
+              forcedSyntax: false
+            };
+          },
+          created() {
+            Vue.watchEffect(() => {
+              console.log("syntax:", this.$data.syntax);
+              if (this.$data.syntax === "Yarn") {
+                monaco.editor.setModelLanguage(editorInstance.getModel(), "yarn");
+              } else if (this.$data.syntax === "ConvoScript") {
+                monaco.editor.setModelLanguage(editorInstance.getModel(), "convoscript");
+              } else if (this.$data.syntax === "QuestMark") {
+                monaco.editor.setModelLanguage(editorInstance.getModel(), "markdown");
+              } else {
+                console.warn(`Unknown syntax: ${this.$data.syntax} -- defaulting to QuestMark!`);
+                monaco.editor.setModelLanguage(editorInstance.getModel(), "markdown");
+              }
+            });
+          },
+          methods: {
+            detectSyntax(src) {
+              if (this.forcedSyntax === true) {
+                return; // bail out early! syntax is forced.
+              }
+
+              if (src.trim().startsWith("title")) {
+                this.syntax = "Yarn";
+              } else if (src.trim().startsWith("@PLAYER_CHOICES@")) {
+                this.syntax = "ConvoScript";
+              } else if (src.trim().startsWith("# QUESTMARK-OPTIONS-HEADER")) {
+                this.syntax = "QuestMark";
+              } else {
+                console.warn("Could not determine input file format -- assuming QuestMark!");
+                this.syntax = "QuestMark"; // assume QuestMark
+              }
+            },
+            forceSyntax(syntax) {
+              this.forcedSyntax = true;
+              this.syntax = syntax;
+            },
+            stopForceSyntax() {
+              this.forcedSyntax = false;
+            },
+          },
+        });
+        const editorToolboxInstance = editorToolbox.mount("#editor-toolbox");
+
+        editorInstance.addAction({
+          id: "force-syntax-yarn",
+          label: "Force Syntax: Yarn",
+          run: () => {editorToolboxInstance.forceSyntax("Yarn")},
+        });
+
+        editorInstance.addAction({
+          id: "force-syntax-questmark",
+          label: "Force Syntax: QuestMark",
+          run: () => {editorToolboxInstance.forceSyntax("QuestMark")},
+        });
+
+        editorInstance.addAction({
+          id: "force-syntax-convoscript",
+          label: "Force Syntax: ConvoScript",
+          run: () => {editorToolboxInstance.forceSyntax("ConvoScript")},
+        });
+
+        editorInstance.addAction({
+          id: "force-syntax-stop",
+          label: "Force Syntax: <Stop forcing syntax>",
+          run: () => {editorToolboxInstance.stopForceSyntax()},
+        });
+
         let decorations = [];
         let compile = () => {
           editorInstance.deltaDecorations(decorations, []);
@@ -390,9 +451,9 @@ title: Rude
             },
           };
           const src = editorInstance.getValue();
-          const fileFormat = detectFileFormat(src);
+          editorToolboxInstance.detectSyntax(src);
+          const fileFormat = editorToolboxInstance.$data.syntax;
           if (fileFormat === "Yarn") {
-            monaco.editor.setModelLanguage(editorInstance.getModel(), "yarn");
             const parseResult = QuestmarkYarn.parse(
               src,
               errorListener
@@ -409,7 +470,6 @@ title: Rude
             } catch (e) { }
             loadVM(parseResult.vmState);
           } else if (fileFormat === "ConvoScript") {
-            monaco.editor.setModelLanguage(editorInstance.getModel(), "convoscript");
             const parseResult = UqmFilesParsers.parseConvoScript(src);
             console.log(parseResult);
             const vmState = {
@@ -499,7 +559,6 @@ title: Rude
             console.log(vmState);
             loadVM(vmState);
           } else if (fileFormat === "QuestMark") {
-            monaco.editor.setModelLanguage(editorInstance.getModel(), "markdown");
             const parsed = Questmark.parseMarkdown(src);
             loadVM(parsed.qvmState);
           }
@@ -580,6 +639,13 @@ title: Rude
   <body>
     <div class="container">
       <div class="editor"></div>
+      <div class="toolbox" id="editor-toolbox">
+        <button id="compile-yarn" style="display: none">
+          Compile (yarn -> tzo/questvm)
+        </button>
+        <button id="download">Download compiled code .json</button>
+        <button id="restart">Restart QuestVM</button>
+      </div>
       <div class="playground">
         <div id="runtime">
           <span v-if="vm">
@@ -611,13 +677,6 @@ title: Rude
             </span>
           </span>
         </div>
-      </div>
-      <div class="toolbox">
-        <button id="compile-yarn" style="display: none">
-          Compile (yarn -> tzo/questvm)
-        </button>
-        <button id="download">Download compiled code .json</button>
-        <button id="restart">Restart QuestVM</button>
       </div>
     </div>
   </body>
