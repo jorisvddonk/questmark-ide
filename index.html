@@ -65,14 +65,25 @@
 
       .container {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        grid-template-rows: 1fr 1fr 1fr 0fr;
+        grid-template-columns: 1fr 0.5em 1fr;
+        grid-template-rows: 1fr 0.5em 1fr 0fr;
         grid-auto-flow: row;
         grid-template-areas:
-          "editor editor playground"
-          "editor editor playground"
-          "editor editor debug"
-          "toolbox toolbox debug";
+          "editor dragbar_h playground"
+          "editor dragbar_h dragbar_v"
+          "editor dragbar_h debug"
+          "toolbox dragbar_h debug";
+      }
+
+      .dragbar_h {
+        grid-area: dragbar_h;
+        background-color: #444;
+        cursor: ew-resize;
+      }
+      .dragbar_v {
+        grid-area: dragbar_v;
+        background-color: #444;
+        cursor: ns-resize;
       }
 
       .editor {
@@ -88,14 +99,6 @@
       .flow {
         background: #2c2c2c;
         color: white;
-      }
-
-      .debug:before {
-        content: '';
-        height: 2px;
-        background-color: #444;
-        display: block;
-        margin-top: -2px;
       }
 
       .playground {
@@ -217,6 +220,28 @@
       await loadWASM(
         "https://cdn.jsdelivr.net/npm/onigasm@2.2.5/lib/onigasm.wasm"
       );
+
+      const container = document.querySelector(".container");
+      const dragbar_h = document.querySelector(".dragbar_h");
+      const dragbar_v = document.querySelector(".dragbar_v");
+      const drag_h_handler = (evt) => {
+        container.style.gridTemplateColumns = `calc(${evt.clientX}px - 0.25em) 0.5em 1fr`;
+      };
+      const drag_v_handler = (evt) => {
+        container.style.gridTemplateRows = `calc(${evt.clientY}px - 0.25em) 0.5em 1fr 0fr`;
+      };
+      dragbar_h.addEventListener("mousedown", (evt) => {
+        evt.preventDefault();
+        window.addEventListener("mousemove", drag_h_handler);
+      });
+      dragbar_v.addEventListener("mousedown", (evt) => {
+        evt.preventDefault();
+        window.addEventListener("mousemove", drag_v_handler);
+      });
+      window.addEventListener("mouseup", () => {
+        window.removeEventListener("mousemove", drag_h_handler);
+        window.removeEventListener("mousemove", drag_v_handler);
+      });
 
       const registry = new Registry({
         getGrammarDefinition: async (scopeName) => {
@@ -731,6 +756,8 @@ title: Rude
   </head>
   <body>
     <div class="container">
+      <div class="dragbar_h"></div>
+      <div class="dragbar_v"></div>
       <div class="editor"></div>
       <div class="toolbox" id="editor-toolbox">
         <button id="compile-yarn" style="display: none">
