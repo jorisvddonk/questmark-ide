@@ -316,34 +316,46 @@
           document.querySelector(".editor"),
           {
             value: `title: Start
+tags: demo
 ---
-Test
-<<set $foo to false>>
+<<declare $foo = false>>
+Welcome to Yarn Spinner 3.x!
+
+<<once>>
+    This is shown only the first time.
+<<endonce>>
+
+<<set $foo to true>>
 <<if $foo>>
-    Foo is true!
+    Foo is now true.
+<<elseif $foo == false>>
+    Foo is false.
 <<else>>
-    Foo is false!
+    Hmm.
 <<endif>>
+
 -> I like pie
-  I also like pie!
+    I also like pie!
 -> I like cake
-  Cake is pretty good!
-  -> Wait, you like cake? Nevermind then!
-    Wow, rude!
-    <<jump Rude>>
-  -> We both like cake! Yay!
-    Woo!
+    Cake is pretty good!
+    -> Wait, you like cake?
+        Rude!
+        <<jump Rude>>
+    -> We both like cake! Yay!
+        Woo!
+
+-> Restart
+    <<jump Start>>
 
 Goodbye!
 ===
 
 title: Rude
 ---
--> Sorry, I did not mean to be rude
-  You are forgiven
--> I am rude? No, you!
-  Sigh. See?
-===`,
+-> Sorry...
+    You are forgiven
+===
+`,
             language: "yarn",
             theme: "mytheme",
             automaticLayout: true
