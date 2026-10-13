@@ -174,6 +174,29 @@
         display: inline-block;
         line-height: 1.5em;
       }
+      .help-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .help-panel {
+        background: #222;
+        color: #eee;
+        padding: 1em;
+        border-radius: 8px;
+        max-width: 480px;
+        width: 90%;
+        max-height: 80vh;
+        overflow: auto;
+      }
+      .help-panel button {
+        margin: 0.25em 0;
+      }
+      .help-panel h3 { margin-top: 0.5em; }
     </style>
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.8/require.min.js"
@@ -423,7 +446,12 @@ title: Rude
           data() {
             return {
               syntax: null,
-              forcedSyntax: false
+              forcedSyntax: false,
+              showHelp: false,
+              samples: [
+                { name: "Yarn Spinner 3.x Demo", key: "yarn3" },
+                { name: "Yarn Spinner: Basics", key: "yarnBasic" }
+              ]
             };
           },
           created() {
@@ -464,6 +492,11 @@ title: Rude
             },
             stopForceSyntax() {
               this.forcedSyntax = false;
+            },
+            loadSample(key) {
+              editorInstance.setValue(sampleTexts[key]);
+              this.showHelp = false;
+              compile();
             },
           },
         });
@@ -725,6 +758,93 @@ title: Rude
 
         let debouncedCompile = debounce(compile, 1000);
 
+        const sampleTexts = {
+          yarn3: `title: Start
+tags: demo
+---
+<<declare $foo = false>>
+Welcome to Yarn Spinner 3.x!
+
+<<once>>
+    This is shown only the first time.
+<<endonce>>
+
+<<set $foo to true>>
+<<if $foo>>
+    Foo is now true.
+<<elseif $foo == false>>
+    Foo is false.
+<<else>>
+    Hmm.
+<<endif>>
+
+-> I like pie
+    I also like pie!
+-> I like cake
+    Cake is pretty good!
+    -> Wait, you like cake?
+        Rude!
+        <<jump Rude>>
+    -> We both like cake! Yay!
+        Woo!
+
+-> Restart
+    <<jump Start>>
+
+Goodbye!
+===
+
+title: Rude
+---
+-> Sorry...
+    You are forgiven
+===
+`,
+          yarnBasic: `title: Start
+---
+Qwe: Wow!
+Asd: My first ever Yarn script!
+
+<<set $gold_amount to 5>>
+
+Player: I want to buy a cake!
+
+<<if $gold_amount < 10>>
+    Baker: Well, you can't afford one, as you only have {$gold_amount} gold!
+<<endif>>
+
+-> Gosh!
+	Foo: Awesome!
+-> Incredible!
+	Bar: baz
+-> I'm amazed!
+	Bar: Wow you sure are! Here's a nested thing
+	-> opt 1
+		Baz: You selected 1
+	-> opt 2
+		Baz: You selected 2
+	-> opt 3
+		Baz: You selected 3
+
+Anyway, time to get writing!
+
+-> Go again
+	<<jump Start>>
+-> Go outside
+	<<jump Outside>>
+===
+
+title: Outside
+---
+You are now outside!
+
+-> Yay
+
+Foobar.
+
+===`
+        };
+
         document
           .querySelector("#compile-yarn")
           .addEventListener("click", () => {
@@ -798,6 +918,20 @@ title: Rude
             </ul>
           </nav>
         </span>
+        <button @click="showHelp = true">Help & Samples</button>
+        <div v-if="showHelp" class="help-overlay" @click.self="showHelp = false">
+          <div class="help-panel">
+            <button @click="showHelp = false">Close</button>
+            <h3>Samples</h3>
+            <ul>
+              <li v-for="sample in samples" :key="sample.key">
+                <button @click="loadSample(sample.key)">{{ sample.name }}</button>
+              </li>
+            </ul>
+            <h3>Help</h3>
+            <p>Loads a sample into the editor and compiles it. Syntax is auto-detected.</p>
+          </div>
+        </div>
       </div>
       <div class="playground">
         <div id="runtime">
